@@ -1,0 +1,177 @@
+/* bgp_conf.proto
+BGP/EVPN配置参数，状态查看
+如下接口定义中所有的IP地址都用字符串方式表达
+*/
+
+syntax = "proto3";
+package cml;
+import	"comm_types.proto";
+
+enum BGP_TYPE {
+	EBGP  = 0;
+	IBGP = 1;
+}
+
+message EnableGlobalBgp {
+	bool enabled = 1;
+}
+/*BGP实例相关消息定义*/
+message BgpInst {
+	int32 inst_id = 1;
+	string inst_name = 2;
+}
+
+message BgpInstResp {
+	repeated BgpInst bgpInsts = 1;
+}
+
+
+message BgpBfdConf {
+	int32 bfd_min_tx = 1;
+	int32 bfd_min_rx = 2;
+	int32 bfd_multiplier_tx = 3;
+}
+
+
+/*BGP对等体组相关消息定义*/
+message	PeerGroup	{
+	string  group_name  =   1; 
+	BGP_TYPE	type	=	2;
+}
+
+message	PeerGroupResp {
+	repeated PeerGroup bgpPgs = 1;
+}
+
+
+/*BGP实例相关消息定义*/
+message	BgpPeer	{
+	string bgp_inst_name = 1;
+	int32 vrf = 2;
+	string  group_name  =   3; 
+	string peer_ip	=	4;
+	uint32 as_num = 5;
+	BgpBfdConf bfd_conf = 6;
+	int32 keepaliveTimer = 7;
+	int32 holdTimer = 8;
+	int32 minHoldTimer = 9;
+}
+
+message	BgpPeerResp {
+	repeated BgpPeer bgpPeers = 1;
+}
+
+/*EVPN实例相关配置*/
+
+
+message VPNInstance {
+	string bgp_inst_name = 1;
+	string vpn_inst_name = 2;
+	string vrf_name = 3;
+	uint64  rd = 4; //Bridge Domain
+	uint64  export_rt = 5;
+	repeated uint64 import_rts = 6;
+}
+
+message VPNInstanceResp {
+	repeated VPNInstance vpnInsts = 1;
+}
+
+/*EVPN实例配置*/
+message EVPNInstance {
+	string vpn_inst_name = 1;
+	int32 bd_num = 2; //Bridge Domain
+	int32 l2vnet = 3;
+	bool arp_proxy_enabled = 4;
+}
+
+message EVPNInstanceResp {
+	repeated EVPNInstance evpnInsts = 1;
+}
+
+//vbdif接口
+message VBDIF {
+	string vpn_inst_name = 1;
+	int32 bd_num = 2; //Bridge Domain
+	string bdif_name = 3;
+	string ip_addr = 4;
+	int32  mask_len = 5; //接口掩码长度
+}
+
+message VBDIFList {
+	repeated VBDIF bdifs = 1;
+}
+
+/*VLAN和EVPN实例绑定关系*/
+message EVPNVlanBinding {
+	string vpn_inst_name = 1;
+	int32 bd_num = 2; //Bridge Domain
+	int32 vlan_id = 3;
+}
+
+message EVPNVlanList {
+	repeated EVPNVlanBinding vlans = 1;
+}
+
+/*端口和EVPN实例绑定关系*/
+message EVPNPortBinding {
+	string vpn_inst_name = 1;
+	int32 bd_num = 2; //Bridge Domain
+	string port_name = 3;
+	int32 vlan_id = 4;
+}
+message EVPNPortList {
+	repeated EVPNPortBinding ports = 1;
+}
+
+
+//BGP Service provided by Config Model Layer
+service	CmlBgpService	{
+	//使能BGP 
+	rpc  GlobalBgpSwitch(EnableGlobalBgp)	returns	(CommonRespHdr) {}
+	//BGP实例相关配置
+	rpc		CreateBgpInst(BgpInst)	returns	(CommonRespHdr) {}
+	rpc		DeleteBgpInst(BgpInst)	returns	(CommonRespHdr) {}
+	rpc		ShowBgpInst(BgpInst)	returns	(BgpInstResp) {}
+
+
+	//BGP Peer group相关配置
+	rpc		CreateBgpPeerGrp(PeerGroup)	returns	(CommonRespHdr) {}
+	rpc		DeleteBgpPeerGrp(PeerGroup)	returns	(CommonRespHdr) {}
+	rpc		ShowBgpPeerGrp(PeerGroup)	returns	(PeerGroupResp) {}
+
+	//BGP Peer group相关配置
+	rpc		CreateBgpPeer(BgpPeer)	returns	(CommonRespHdr) {}
+	rpc		UpdateBgpPeer(BgpPeer)	returns	(CommonRespHdr) {}	
+	rpc		DeleteBgpPeer(BgpPeer)	returns	(CommonRespHdr) {}
+	rpc		ShowBgpPeer(BgpPeer)	returns	(BgpPeerResp) {}
+	
+	//VPN实例创建
+	rpc		CreateVPNInst(VPNInstance)	returns	(CommonRespHdr) {}
+	rpc		UpdateVPNInst(VPNInstance)	returns	(CommonRespHdr) {}
+	rpc		DeleteVPNInst(VPNInstance)	returns	(CommonRespHdr) {}
+	rpc		ShowVPNInst(VPNInstance)	returns	(VPNInstanceResp) {}
+
+	//EVPN相关配置
+	rpc		CreateEVPNInst(EVPNInstance)	returns	(CommonRespHdr) {}
+	rpc		UpdateEVPNInst(EVPNInstance)	returns	(CommonRespHdr) {}
+	rpc		DeleteEVPNInst(EVPNInstance)	returns	(CommonRespHdr) {}
+	rpc		ShowEVPNInst(EVPNInstance)	returns	(EVPNInstanceResp) {}
+
+
+	//Vbdif相关配置
+	rpc		CreateVbdif(VBDIF)	returns	(CommonRespHdr) {}
+	rpc		DeleteVbdif(VBDIF)	returns	(CommonRespHdr) {}
+	rpc		ShowVbdif(VBDIF)	returns	(VBDIFList) {}
+
+	//EVPN VLAN实例配置关系
+	rpc		CreateEVPNVlanBinding(EVPNVlanBinding)	returns	(CommonRespHdr) {}
+	rpc		DeleteEVPNVlanBinding(EVPNVlanBinding)	returns	(CommonRespHdr) {}
+	rpc		ShowEVPNVlanBinding(EVPNVlanBinding)	returns	(EVPNVlanList) {}
+
+	//EVPN Port实例配置关系
+	rpc		CreateEVPNPortBinding(EVPNPortBinding)	returns	(CommonRespHdr) {}
+	rpc		DeleteEVPNPortBinding(EVPNPortBinding)	returns	(CommonRespHdr) {}
+	rpc		ShowEVPNPortBinding(EVPNPortBinding)	returns	(EVPNPortList) {}	
+}
+

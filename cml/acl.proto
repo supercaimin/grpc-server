@@ -1,0 +1,300 @@
+/* 
+ * ACL 功能的配置和操作维护接口
+ *
+ */
+syntax = "proto3";
+package cml;
+import	"comm_types.proto";
+
+enum ACL_PROFILE_TYPE 
+{
+	WHITELIST	= 0;
+	BLACKLIST	= 1;
+}
+
+/* ACL RULE TYPE */
+enum ACL_RULE_TYPE
+{
+	ACL_RULE_TYPE_BASIC  	= 0;
+	ACL_RULE_TYPE_ADVANCE 	= 1;
+	ACL_RULE_TYPE_L2        = 3;
+	ACL_RULE_TYPE_ARP       = 4;
+	ACL_RULE_TYPE_MIXED     = 5;
+}
+
+
+enum ACL_MATCH_FLAG{
+	ACL_MATCH_FLAG_NONE   = 0;
+	ACL_MATCH_FLAG_FRAGM  =  2;   		/*bit1*/
+	ACL_MATCH_FLAG_TIMG   =  4;   		/*bit2*/
+	ACL_MATCH_FLAG_SRCIP  = 8;    		/*bit3 */
+	ACL_MATCH_FLAG_DSTIP  = 16;   		/*bit4 */
+	ACL_MATCH_FLAG_VPN    = 32;   		/*bit5 0x20*/
+	ACL_MATCH_FLAG_PROTO  = 64;   		/*bit6 0x40 */
+	ACL_MATCH_FLAG_SRCPORT = 128; 		/*bit7 0x80 */
+	ACL_MATCH_FLAG_DSTPORT = 256; 		/*bit8 0x100 */
+	ACL_MATCH_FLAG_ICMPTYPE =512; 		/*bit9 0x200 */
+	ACL_MATCH_FLAG_TCPFLAG  =1024; 		/*bit10 0x400*/
+	ACL_MATCH_FLAG_DSCP     =2048;      /*bit11 0x800*/ 
+	ACL_MATCH_FLAG_PRECEDENCE=4096;     /*bit12 0x1000*/ 
+	ACL_MATCH_FLAG_TOS  =	8192;       /*bit13 0x2000*/ 
+	ACL_MATCH_FLAG_SRCMAC  = 16384 ;    /*bit14 0x4000*/
+	ACL_MATCH_FLAG_DSTMAC  = 32768 ;    /*bit15 0x8000*/
+	ACL_MATCH_FLAG_ETHTYPE = 65536 ;    /*bit16 0x10000*/
+	ACL_MATCH_FLAG_VLANID  = 131072;	/*bit17 0x20000*/
+	ACL_MATCH_FLAG_DOT1P  =   262144;	/*bit18 0x40000*/
+	ACL_MATCH_FLAG_INVLAN =   524288;    /*bit19 0x80000*/
+	ACL_MATCH_FLAG_INDOT1P =  1048576;   /*bit20 0x100000*/
+	ACL_MATCH_FLAG_DTAG    = 2097152;   /*bit21 0x200000*/
+	ACL_MATCH_FLAG_ICMPCODE  =   4194304;   /*bit22 0x400000*/
+	ACL_MATCH_FLAG_IGMPTYPE  =  8388608;/*bit23  0x800000*/
+	ACL_MATCH_FLAG_PACKET_TYPE=16777216;/*bit24 0x1000000*/
+}
+
+
+message   BASIC_ACL_MATCH{ 
+	string      fragment_type = 1;  /* fragment-type fragment */
+	string      time_range  = 2;    /* time-range*/
+	string	    src_ip_mask = 3;
+	string      vpn_inst = 4;       /*vpn-instance name */
+	uint32      flag = 5;           /* match flags*/
+}
+
+enum IP_PROTO_TYPE{		/*是否修改为string*/
+	IP_PROTO_IP = 0;     /* */
+	IP_PROTO_UDP = 1;
+	IP_PROTO_TCP = 2;
+	IP_PROTO_ICMP = 3;
+	IP_PROTO_IGMP = 4;
+	IP_PROTO_OTHER = 20;
+}
+
+enum ICMP_TYPE{			/* 是否直接用string 表示?*/
+	ICMP_TYPE_NOTCARE  = 0;     /* protocol 是 ICMP，不关心ICMP_TYPE 时 */
+	ICMP_TYPE_REQEUST  = 1;
+	ICMP_TYPE_REPLY    = 2;
+	ICMP_TYPE_UNREACH  = 48;    /* 0x30 Network Unreachable——网络不可达  
+								 * 0x31 Host Unreachable——主机不可达
+								 * 0x32 Protocol Unreachable——协议不可达
+								 * ......
+								 */
+}
+
+message  ADVANCE_ACL_MATCH{
+	string      fragment_type = 1;  
+	string      time_range  = 2;    
+	string      src_ip_mask = 3;
+	string	    dst_ip_mask = 4;
+	string      vpn_inst = 5;   	
+	string      proto_type = 6;		
+	int32	    src_port_min = 7;
+	int32	    src_port_max = 8;
+	int32	    dst_port_min = 9;
+	int32	    dst_port_max = 10;
+	int32       icmp_type = 11;
+	int32       icmp_code =12;
+	int32       igmp_type =13;	  
+	int32       tcp_flag = 14;	 
+	int32       dscp       = 15;
+	int32       precedence = 16;
+	int32       tos        = 17;
+	string       ttl_expired=18;
+	uint32      flag     = 19;   
+}
+
+
+
+message  L2_ACL_MATCH{
+	string   src_mac_mask = 1;
+	string   dst_mac_mask = 2;
+	string   ethertype = 3;  
+	int32    vlan_id = 4;    
+	string   packet_type = 5;    
+	int32    dot1p   = 6;    
+	int32    invlan = 7;     
+	int32    indot1p = 8;   
+	int32    dtag = 9;      
+	string   time_range = 10;
+	int32    flag   = 11;    
+}
+
+message  MIXED_ACL_MATCH{
+	string    	src_mac_mask = 1;
+	string    	dst_mac_mask = 2;
+	string   	ethertype = 3;  
+	int32    	vlan_id = 4;    
+	string   	packet_type = 5;    
+	int32    	dot1p   = 6;    
+	int32    	invlan = 7;     
+	int32    	indot1p = 8;   
+	int32    	dtag = 9;      
+	string      fragment_type = 10;  
+	string      time_range  = 11;    
+	string      src_ip_mask = 12;
+	string	    dst_ip_mask = 13;
+	string      vpn_inst = 14;   	
+	string      proto_type = 15;		
+	int32	    src_port_min = 16;
+	int32	    src_port_max = 17;
+	int32	    dst_port_min = 18;
+	int32	    dst_port_max = 19;
+	int32       icmp_type = 20;
+	int32       icmp_code =21;
+	int32       igmp_type =22;	  
+	int32       tcp_flag = 23;	 
+	int32       dscp       = 24;
+	int32       precedence = 25;
+	int32       tos        = 26;
+	string       ttl_expired=	27;	
+	int32    	flag   = 	28;    
+}
+
+
+
+
+message ARP_ACL_MATCH{
+	string   arp_type   = 1;
+	string   src_ip_mask     = 2;
+	string   dst_ip_mask     = 3;
+	string   src_mac_mask    = 4;
+	string   dst_mac_mask    = 5;
+	string   time_range = 6;
+}
+
+
+
+
+enum	ACL_ACTION {   
+	ACL_NOP	=	0;
+	PERMIT	=	1;
+	DENY	=	2;
+}
+
+
+message BASIC_ACLRULE{
+	string   acl_number=1;
+	int32   step =2;	
+	int32   rule_id = 3;
+	int32   rule_id1 = 4;
+	int32   rule_id2 = 5;
+	int32   action = 6;
+	BASIC_ACL_MATCH   match = 7;
+}
+message BASIC_ACLRULEList
+{
+	repeated BASIC_ACLRULE  basicrules = 1;
+}
+
+message ADVANCE_ACLRULE{
+	string   acl_number=1;
+	int32   step =2;	
+	int32   rule_id = 3;
+	int32   rule_id1 = 4;
+	int32   rule_id2 = 5;
+	int32   action = 6;
+	ADVANCE_ACL_MATCH   match = 7;
+}
+
+message ADVANCE_ACLRULEList
+{
+	repeated ADVANCE_ACLRULE  extendrules = 1;
+}
+
+message L2_ACLRULE{
+	string   acl_number=1;
+	int32   step =2;	
+	int32   rule_id = 3;
+	int32   rule_id1 = 4;
+	int32   rule_id2 = 5;
+	int32   action = 6;
+	L2_ACL_MATCH   match = 7;
+}
+
+message L2_ACLRULEList
+{
+	repeated L2_ACLRULE  l2rules = 1;
+}
+
+message ARP_ACLRULE{
+	string   acl_number=1;
+	int32   step =2;	
+	int32   rule_id = 3;
+	int32   rule_id1 = 4;
+	int32   rule_id2 = 5;
+	int32   action = 6;
+	ARP_ACL_MATCH   match = 7;
+}
+
+message ARP_ACLRULEList
+{
+	repeated ARP_ACLRULE  arprules = 1;
+}
+
+message MIXED_ACLRULE{
+	string   acl_number=1;
+	int32   step =2;	
+	int32   rule_id = 3;
+	int32   rule_id1 = 4;
+	int32   rule_id2 = 5;
+	int32   action = 6;
+	MIXED_ACL_MATCH 	match 	 = 7;
+}
+
+message MIXED_ACLRULEList
+{
+	repeated MIXED_ACLRULE  mixedrules = 1;
+}
+
+message ACLRULEList
+{
+	BASIC_ACLRULEList    basic_rules 	= 1;
+	ADVANCE_ACLRULEList  advance_rules 	= 2;
+	L2_ACLRULEList       l2_rules       = 3;
+	ARP_ACLRULEList      arp_rules      = 4;
+	MIXED_ACLRULEList    mixed_rules    = 5;
+}
+
+
+
+/*Acl配置服务的RPC接口定义*/
+service	CmlAclService	{
+	/* 
+	 *	ACL basic-number 100
+	 *	PROTO_ACL_ENTRY.ruleid = 100
+	 *                 .type   = ACL_RULE_TYPE_BASIC
+	 */
+
+	//BASIC ACL规则相关的配置
+	rpc		CreateBasicACLRule(BASIC_ACLRULE)	returns	(CommonRespHdr) {}
+	rpc		DeleteBasicACLRule(BASIC_ACLRULE)	returns	(CommonRespHdr) {}
+	/*Show传入的参数是BASIC_ACLRULE，如果是空，表示BASIC ACL下所有的Rules*/
+	/*rpc		ShowBasicACLRule(BASIC_ACLRULE)	returns	(BASIC_ACLRULEList) {}*/
+
+	//ADVANCE ACL规则相关的配置
+	rpc		CreateExtendACLRule(ADVANCE_ACLRULE)	returns	(CommonRespHdr) {}
+	rpc		DeleteExtendACLRule(ADVANCE_ACLRULE)	returns	(CommonRespHdr) {}
+	/*Show传入的参数是ADVANCE_ACLRULE，如果是空，表示ADVANCE ACL下所有的Rules*/
+	/*rpc		ShowExtendACLRule(ADVANCE_ACLRULE)	returns	(ADVANCE_ACLRULEList) {}*/
+
+	//L2 ACL规则相关的配置
+	rpc		CreateL2ACLRule(L2_ACLRULE)	returns	(CommonRespHdr) {}
+	rpc		DeleteL2ACLRule(L2_ACLRULE)	returns	(CommonRespHdr) {}
+	/*Show传入的参数是L2_ACLRULE，如果是空，表示L2 ACL下所有的Rules*/
+	/*rpc		ShowL2ACLRule(L2_ACLRULE)	returns	(L2_ACLRULEList) {}*/
+
+	//ARP ACL规则相关的配置
+	rpc		CreateArpACLRule(ARP_ACLRULE)	returns	(CommonRespHdr) {}
+	rpc		DeleteArpACLRule(ARP_ACLRULE)	returns	(CommonRespHdr) {}
+	/*Show传入的参数ARP_ACLRULE，如果是空，表示ARP ACL下所有的Rules*/
+	/*rpc		ShowArpACLRule(ARP_ACLRULE)	returns	(ARP_ACLRULEList) {}*/
+
+	//混合 ACL规则相关的配置
+	rpc		CreateMixedACLRule(MIXED_ACLRULE)	returns	(CommonRespHdr) {}
+	rpc		DeleteMixedACLRule(MIXED_ACLRULE)	returns	(CommonRespHdr) {}
+	/*Show传入的参数是MIXED_ACLRULE，如果是空，表示MIXED ACL下所有的Rules*/
+	/*rpc		ShowMixedACLRule(MIXED_ACLRULE)	returns	(MIXED_ACLRULEList) {}*/
+
+
+	/*获取所有的ACL 规则*/
+	/*rpc     ShowACLRule(ACLRULEList)   returns (ACLRULEList){}*/
+}

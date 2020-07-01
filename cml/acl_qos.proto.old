@@ -1,0 +1,235 @@
+/* ACL QoS功能的配置和操作维护接口
+   
+*/
+syntax = "proto3";
+package cml;
+import	"comm_types.proto";
+
+
+//ACL以及QoS相关定义
+enum ACL_PROFILE_TYPE {
+	WHITELIST	= 0;
+	BLACKLIST	= 1;
+}
+
+/*ACL动作类型，可以位或叠加*/
+enum	ACL_ACTION {
+	ACL_NOP	=	0;
+	PERMIT	=	1;
+	DENY	=	2;
+	REDIRECT =  4;
+	QOSMARK = 8;
+	MIRROR  = 16;
+	SEND_TO_CP = 32;//发送给控制面
+}
+
+//ACL Profile定义
+message		ACLProfile	{
+		int32		profile_id	=	1;
+		string 	    profile_name = 2;
+		ACL_PROFILE_TYPE		type	=	3;
+		uint64		updated_at	=	4;		
+}
+
+message		ACLProfileList	{
+	repeated ACLProfile profiles = 1;		
+}
+
+
+//single flow,used for defined ACL/Classifier/Flow Stats
+message 	FlowEntry  {
+	string     vrf_name = 1;
+	string		src_subnet = 2;
+	int32		src_prefix_len = 3;
+	string		dst_subnet = 4;
+	int32		dst_prefix_len = 5;
+	int32		ip_proto = 6;
+	int32		src_port_min = 7;
+	int32		src_port_max = 8;
+	int32		dst_port_min = 9;
+	int32		dst_port_max = 10;
+}
+
+message		ACLRule	{
+	int32		profile_id	=	1;
+	int32		rule_id	 = 2;
+	DIRECTION	direction = 3;
+	FlowEntry	flow	=	4;
+	ACL_ACTION	action	=	5;
+	string 		action_data = 6;
+	uint64		update_at	=	7; //uint64形式表达的时间戳
+}
+
+message		ACLRuleList	{
+	repeated ACLRule rules = 1;		
+}
+
+//QoS默认优先级
+//priority for service traffic class, including application and QoS
+enum PACKET_PRIORITY {
+	BE	= 0;
+	PRIOR_1 = 1;
+	PRIOR_2	= 2;
+	PRIOR_3	= 3;
+	PRIOR_4 = 4;
+	PRIOR_5 = 5;
+	PRIOR_6 = 6;
+	PRIOR_7 = 7;
+
+}
+
+
+
+
+/*Acl配置服务的RPC接口定义*/
+service	CmlAclService	{
+	//ACL Profile相关配置
+	rpc		CreateACLProfile(ACLProfile)	returns	(CommonRespHdr) {}
+	rpc		DeleteACLProfile(ACLProfile)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是ACL Profile，如果profile id为空，则表示显示所有的profile*/
+	rpc		ShowACLProfile(ACLProfile)	returns	(ACLProfileList) {}
+
+	//ACL规则相关的配置
+	rpc		CreateACLRule(ACLRule)	returns	(CommonRespHdr) {}
+	rpc		DeleteACLRule(ACLRule)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是ACL Profile，表示当前Profile下所有的Rules*/
+	rpc		ShowACLRule(ACLProfile)	returns	(ACLRuleList) {}
+
+
+	//流镜像相关的规则配置
+	rpc		CreateFlowMirrorRule(ACLRule)	returns	(CommonRespHdr) {}
+	rpc		DeleteFlowMirrorRule(ACLRule)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是ACLRule，ruleid为空，表示所有的Rules*/
+	rpc		ShowFlowMirrorRule(ACLRule)	returns	(ACLRuleList) {}	
+	
+
+}
+
+enum QueueType {
+	PriorityQueue = 0;
+	Wfq = 1;
+	Wrr = 2;
+	Drr= 3;
+}
+
+enum QoSColor {
+	Green = 0;
+	Yellow = 1;
+	Red = 2;
+}
+
+
+message WredProfile {
+	string profile_name = 1;
+	QoSColor color = 2;
+	int32 bufsize_low_limit = 3;
+	int32 bufsize_cell_low_limit = 4;
+	int32 bufsize_percent_low_limit = 5;
+	int32 bufsize_high_limit = 6;
+	int32 bufsize_cell_high_limit = 7;
+	int32 bufsize_percent_high_limit = 8;
+	int32 drop_percentage = 9;
+}
+
+message WredProfileList {
+	repeated WredProfile profiles = 1;
+}
+
+/*Queue相关参数*/
+message QoSQueue {
+	uint32 	queue_id = 1;
+	string port_name = 2;
+	uint64 max_rate = 3; //最大带宽, Kbps为单位
+	uint64 cir = 4; //Committed Information Rate， KBytes/seconds
+	uint64 cbs = 5; //Committed Burst Size,  KBytes/seconds
+	QueueType type = 6;
+	PACKET_PRIORITY pri = 7;//如果是pq，则指明优先级
+	int32 weight = 8; //如果是wfq/wrr，则标明权重
+	string wred_profile = 9;
+}
+
+message QoSQueueList {
+	repeated QoSQueue queues = 1;
+}
+
+message QueueStats {
+	uint32 	queue_id = 1;
+	uint64  pktsRecved = 2;
+	uint64  bitsRecved = 3;
+	uint64  pktsSent = 4;
+	uint64  bitsSent = 5;
+	uint64  pktsDropped = 6;
+	uint64  bitsDropped = 7;
+
+}
+
+/*MPLS TC to Queue映射规则*/
+message TC2QueueMap {
+	string port_name = 1;
+	int32 mpls_tc = 2;
+	uint32 queue_id = 3;
+}
+
+message TC2QueueMapList {
+	repeated TC2QueueMap tc2qs = 1;
+}
+
+/*802.1P to Traffic Class映射规则*/
+message Map8021P2TC {
+	string port_name = 1;
+	int32  dot1p = 2; //802.1p的优先级
+	int32 mpls_tc = 3;
+}
+
+message Map8021P2TCList {
+	repeated Map8021P2TC p2tcs = 1;
+}
+
+/*DSCP to Traffic Class映射规则*/
+message MapDscp2TC {
+	string port_name = 1;
+	int32  dscp = 2; //dscp的优先级
+	int32 mpls_tc = 3;
+}
+
+message MapDscp2TCList {
+	repeated MapDscp2TC dscp2tcs = 1;
+}
+
+
+
+/*QoS配置服务的RPC接口定义*/
+service	CmlQoSService	{
+	/*WRED相关配置参数*/
+	rpc		CreateWredProfile(WredProfile)	returns	(CommonRespHdr) {}
+	rpc		DeleteWredProfile(WredProfile)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是Queue，如果Queue id为空，则表示显示所有的Queue*/
+	rpc		ShowWredProfile(WredProfile)	returns	(WredProfileList) {}
+
+
+	/*Queue相关配置参数*/
+	rpc		CreateQueue(QoSQueue)	returns	(CommonRespHdr) {}
+	rpc		DeleteQueue(QoSQueue)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是Queue，如果Queue id为空，则表示显示所有的Queue*/
+	rpc		ShowQueue(QoSQueue)	returns	(QoSQueueList) {}
+	rpc		ShowQueueStats(QoSQueue)	returns	(QueueStats) {}
+
+	/*MPLS TC到Queue的映射*/
+	rpc		CreateTC2QueueMap(TC2QueueMap)	returns	(CommonRespHdr) {}
+	rpc		DeleteTC2QueueMap(TC2QueueMap)	returns	(CommonRespHdr) {}
+	/*Show传入的参数也是TC2QueueMap，如果为空，则表示显示所有的TC2QueueMap*/
+	rpc		ShowTC2QueueMap(TC2QueueMap)	returns	(TC2QueueMapList) {}
+
+	/*802.1P to Traffic Class映射*/
+	rpc		Create8021P2TcMap(Map8021P2TC)	returns	(CommonRespHdr) {}
+	rpc		Delete8021P2TcMap(Map8021P2TC)	returns	(CommonRespHdr) {}
+	rpc		Show8021P2TcMap(Map8021P2TC)	returns	(Map8021P2TCList) {}
+
+	/*DSCP 到TC的映射*/
+	rpc		CreateDscp2TcMap(MapDscp2TC)	returns	(CommonRespHdr) {}
+	rpc		DeleteDscp2TcMap(MapDscp2TC)	returns	(CommonRespHdr) {}
+	rpc		ShowDscp2TcMap(MapDscp2TC)	returns	(MapDscp2TCList) {}		
+
+
+
+}

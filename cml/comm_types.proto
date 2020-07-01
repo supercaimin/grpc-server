@@ -1,0 +1,306 @@
+/*公共类型说明
+数据类型到protobuf转换的说明
+1、uuid格式采用bytes表示
+2、timestamp 采用uint64表示
+3、8/16bit数值以及32bit有符号数均用int32 protobuf数据类型表示
+4、考虑到protobuf展开enum时用类型名+"_"作为常量名的前缀，因此enum类型尽量简单
+*/
+
+syntax = "proto3";
+package cml;
+import "codes.proto";
+
+enum IP_ADDR_TYPE {
+	IPV4	=  0;
+	IPV6	=  1;
+}
+
+enum 	DATAOP	{
+		READ	=	0;
+		ADD	=	1;
+		UPDATE	=	2;
+		DEL	=	3;
+}
+
+//系统的IP_Proto定义
+enum IP_PROTO	{
+	UNKNOWN	=	0;
+	ICMP	=	1;
+	IGMP	=	2;
+	TCP	=	6;
+	UDP	=	17;
+	DCCP	=	33;
+	RSVP	=	46;
+
+	GRE	=	47;
+	IPSEC_ESP	=	50;
+	IPSEC_AH	=	51;
+	EIGRP	=	88;
+	OSPF	=	89;
+	L2TP	=	115;
+	SCTP	=	132;
+	HIP	=	139;	
+}
+
+
+//Protocols to manage a given device
+enum MGMT_PROTO {
+	PROTO_UNKNOW	=0;
+	gRPC	= 1;
+	OVSDB	= 2;
+	NETConf	= 3;
+	RESTful	= 4;
+	SNMPv2	= 5;
+	SNMPv3	= 6;
+}
+
+//Overlay Tunnel/VPN Type, in datacenter it's typically one of these vxlan tunnels
+enum  TUNNEL_TYPE {
+	SSL	=0;
+	VXLAN = 1;
+	VXLAN_GPE = 2;
+	GENEVE = 3;
+	IPSEC = 4;
+	VXLAN_OVER_IPSEC = 5;
+	MPLS = 6;
+	VXLAN_OVE_SSL	=	7;
+}
+
+enum NetworkType {
+	NETWORK_UNKNOW	=0;
+	NETWORK_VLAN = 1;
+	NETWORK_VXLAN = 2;
+	NETWORK_VXLAN_GPE = 3;
+	NETWORK_GENEVE = 4;
+	NETWORK_SR_UDP	= 5;
+}
+
+//网络接口类型
+enum IF_TYPE {
+	IF_UNKNOW	=0;
+	IF_PHY = 1;
+	IF_VLAN = 2;
+	IF_VXLAN = 3;
+	IF_MPLS = 4;
+}
+
+
+//Status of Device, port, link
+enum RES_STATE {
+	UP = 0;
+	DOWN = 1;
+}
+
+//Direction of ACL, Flow 
+enum DIRECTION {
+	INGRESS	= 0;
+	EGRESS	= 1;
+}
+
+
+//common type for ARP/host, for a arp/host query request, there should only exist either ip or macaddr 
+message HostArp {
+	int32	vrf = 1;
+	int32   vnet = 2;
+	string  ip = 3;
+	uint64	macAddr = 4;
+	bool   is_local = 5;
+	string    tun_ip = 6;  //is_local=false，则需要指明远端Tunnel的IP地址
+}
+
+message HostArpList {
+	repeated HostArp  hosts = 1;
+}
+
+
+//Version struct for software
+message SoftwareVersion	{
+	int32	major	=	1;
+	int32	minor	=	2;
+	int32	patch	=	3;
+}
+
+//Common Request Message for some RPC request without actual input parameters
+message	CommonReqMsg	{
+	uint32	generation = 1;//generation表示设别一次启动之后连接的序号，第一次连接初始化为0，每次和控制节点重协商加1
+}
+
+
+//common Message Header for RPC response
+message	CommonRespHdr	{
+		RESULT	retCode	=1;
+		string	desc	=	2;
+		uint64	server_time = 3;
+}
+
+//Single Route Entry for static routes
+message  RouteEntry {
+	int32 	vrf = 1;
+	string	subnet = 2;
+	int32		prefix_len = 3;
+	int32		metric	= 4;
+	bool        is_local = 5;  //is_local=true, Nexthop表示是下一跳的IP地址，否则表示是下一跳的tunnel_ip
+	repeated 	string	nexthops = 6;
+}
+
+/*路由表详情*/
+message  DeviceRouteEntries {
+	int32	num = 1;
+	repeated RouteEntry routes = 2;
+}
+
+
+//device port description
+message DevicePort	{
+	uint32	port_id	=	1;
+	string	name	=	2;
+	IF_TYPE	type	=3;
+	IF_TYPE	netType	=4;
+	RES_STATE	state	=5;
+	uint32		cur_speed	=6;
+	uint32		max_speed	=7;
+	uint64		update_at	=	8;
+}
+
+//Port description for given device
+message	PortDescription	{
+		bytes	deviceId	=	1;
+		uint32	port_num	=	2;
+		repeated	DevicePort	ports = 3;
+}
+
+
+/*Tunnel的定义，一般用于上报Tunnel信息，配置Tunnel时一般不需要指定源IP*/
+message 	Tunnel {
+	bytes		device_id	=	1;
+	string		tun_src_ip	=	2;
+	string		tun_dst_ip	=	3;
+	TUNNEL_TYPE	type		=	4;
+	uint32		logical_portid	=	5;
+	bool		bfd_enabled		=	7;
+	int32		detect_duration		=	8;
+	int32		dead_count		=	9;
+	uint64		update_at		=	10;
+}
+
+message TunnelList {
+	repeated Tunnel  tun_list = 1;
+}
+
+//端口统计，设备上报给控制节点，管理界面可以读取
+message	PortStats	{
+		uint32	port_id	=	1;
+		uint64	statsTime	=	2;//the timestamp for this stats record collected, precision is millisecond
+		uint64	recvPackets	=	3;
+		uint64	recvBytes	=	4;
+		uint64	recvErrorPackets	=	5;
+		uint64	SentPackets	=	6;
+		uint64	sentBytes	=	7;
+		uint64	sentErrorPackets	=	8;		
+}
+
+//上报端口统计的接口
+message	PortStatsList	{
+		bytes	deviceId	=	1;
+		uint32	port_num	=	2;
+		repeated	PortStats	records = 3;
+}
+
+//表项的记录数和TimeStamp的校验和，用于设备和控制节点之间的对账使用
+message	TableStatus	{
+	DEV_TABLE	table_id	=	1;
+	int32		record_num	=	2;
+	uint64		checksum	= 3;
+}
+
+//设备性能及状态监控数据
+message		CPU_Usage {
+	int32	cpu_id = 1;
+	float	usage	=	2; //CPU占用率，百分比
+}
+
+message		Disk_Usage	{
+	string	volume_name = 1;
+	uint64	capacity	= 2;//单位为Kbytes
+	uint64	used	=	3; //单位为Kbytes
+}
+
+message		DevicePerfReport {
+		bytes	device_id = 1;
+		uint64	timestamp = 2;	//采用统计的时间点
+		int32	vcpu_num = 3;
+		uint64	total_mem	=	4;
+		uint64	used_mem	=	5;
+		repeated	CPU_Usage cpu_usages = 6;
+		repeated	Disk_Usage disk_usages = 7;
+}
+
+
+
+//操作维护相关消息定义，包括对账，统计相关消息
+enum	DEV_TABLE	{
+	DATA_ALL	=	0;
+	PORT = 1;
+	INTERFACE	=	2;
+	LOOPBACK_INTF = 3;
+	VLAN	=	4;
+	VLAN_MEMBER = 5;
+	LAG		=6;
+	LAG_MEMBER = 7;
+	SWITCH  	=	8;
+	VRF  	=	9;
+	VNET = 10;
+
+	STATIC_HOST = 	20;
+	STATIC_ARP 	   = 	21;
+	STATIC_ROUTE	=	22;
+
+	ACL_PROFILE	=	23;
+	ACL_RULE	=	24;
+	ACL_BINDING	=	25;
+
+	DHCP_SERVER = 30;
+	NTP_SERVER = 31;
+	SYSLOG_SERVER = 32;
+	BGP_NEIGHBOR = 33;
+	DEVICE_NEIGHBOR = 34; //设备邻居配置表
+	DEVICE_NEIGHBOR_METADATA = 35;
+	MIRROR_SESSION = 36;
+
+	//QoS相关配置项
+	QUEUE = 50;
+	PFC_WD = 51;
+	PFC_PRIORITY_TO_PRIORITY_GROUP_MAP = 52;
+	TC_TO_PRIORITY_GROUP_MAP = 53;
+	MAP_PFC_PRIORITY_TO_QUEUE = 54;
+	TC_TO_QUEUE_MAP = 55;
+	DSCP_TO_TC_MAP = 56;
+	PORT_QOS_MAP = 57;
+	DOT1P_TO_TC_MAP = 58;
+
+	SCHEDULER = 60;
+	WRED_PROFILE = 61;
+	BUFFER_POOL = 62;
+	BUFFER_PROFILE = 63;
+	BUFFER_QUEUE = 64;
+	BUFFER_PG = 65;
+	BUFFER_PORT_INGRESS_PROFILE_LIST = 66;
+	BUFFER_PORT_EGRESS_PROFILE_LIST = 67;
+	POLICER = 68;	
+	
+
+	VXLAN_TUNNEL = 70;
+	VXLAN_TUNNEL_MAP = 71;
+	NEIGH = 72;
+	VNET_ROUTE = 73;
+	VNET_ROUTE_TUNNEL = 74;
+	PASS_THROUGH_ROUTE_TABLE=75;
+	
+	FLEX_COUNTER_TABLE=80;
+	WATERMARK_TABLE = 81;
+
+	WARM_RESTART = 100;
+	CRM     =  101; //关键资源配置表
+	
+}
+

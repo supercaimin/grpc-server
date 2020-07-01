@@ -1,0 +1,115 @@
+/*
+错误码定义
+*/
+syntax = "proto3";
+option go_package = "huastart.com/pub/errcode";
+package errcode;
+
+
+enum RESULT {
+    SUCCESS = 0;
+
+    /*系统通用错误，1-199*/
+    ERROR_COMMON = 1; //通用的错误类型，作为未知错误看待
+    ERROR_NULL_POINTER = 2; //空指针
+    ERROR_NOT_FOUND = 3; //未找到
+    ERROR_ALREADY_EXIST = 4; //已经存在
+    ERROR_OUTOF_MEMORY = 5; //内存不够
+    ERROR_TIME_OUT = 6; //超时
+    ERROR_FILE_NOT_FOUND = 7; //文件未找到
+    ERROR_FAILED_OPEN_FILE = 8; //打开文件失败，原因未知
+    ERROR_DISK_FULL =   9; //磁盘满
+    ERROR_NO_PERMISSION = 10; //没有权限
+
+    ERROR_INVALID_PARAM = 11; //参数不正确
+    ERROR_CPU_OVERLOAD = 12; //CPU过载    
+    ERROR_LOAD_MODULE  = 13; //加载模块失败
+    ERROR_INVALID_UUID_STRING = 14; //无效的UUID字符串格式
+    ERROR_INVALID_DATE_FORMAT = 15; //无效日期时间格式
+    ERROR_FAILED_ENCODING = 16;  //编码错误，包括JSON编码等
+    ERROR_FAILED_DECODING = 17;  //解码错误
+    ERROR_NOT_IMPLEMENTED = 18;  //系统未实现、不支持
+    ERROR_SYSCALL_FAIL = 19; //操作系统调用失败
+    ERROR_QUOTA_EXCEEDED = 20; // 资源超过最大配额
+
+    ERROR_NOT_INITIATED = 21; // 未正确初始化模块、系统
+
+    //Error for sysmgr,暂时保留，不应该给具体某个模块预留错误，而是给功能错误留错误码，未初始化则对所有的系统都应未初始化
+    ERROR_SYSMGR_NOT_INITED = 196; //初始化未完成
+    ERROR_SYSMRG_UPDATEREQ = 197; //添加升级命令失败
+    ERROR_SYSMRG_CANCELUPDATEREQ = 198; //取消升级命令失败
+    ERROR_SYSMGR_NOT_SUPPORT = 199;  //未实现
+
+    /*数据操作相关错误, 200-299*/
+    //删除数据对象失败的通用原因，如果明确是业务记录不存在，则用明确的错误码
+    ERROR_FAILED_INSERT_DATAITEM = 200; //添加数据对象的通用失败原因
+    ERROR_FAILED_UPDATE_DATAITEM = 201;
+    ERROR_FAILED_DEL_DATAITEM = 202;
+    ERROR_DATA_INCONSISTENT =  203; // inconsistency state detected between server and client
+    ERROR_OPEN_DB = 204;      //打开数据库错误
+    ERROR_CLOSE_DB = 205;     //关闭数据库失败
+    ERROR_SQL_OP   = 206; //SQL操作失败
+
+    /*IP网络和通信相关错误, 300-399*/
+    ERROR_INVALID_IPADDR = 300; //无效IP地址
+    ERROR_INVALID_MACADDR = 301; //无效MAC地址
+    ERROR_IP_CONFLICT = 302; // IP地址冲突
+    ERROR_INVALID_PKT = 303; //无效IP报文
+    ERROR_INVALID_ARP_PKT = 304; //无效ARP报文
+    ERROR_INVALID_DNS_PKT = 305; //无效DNS报文
+    ERROR_INVALID_DHCP_PKT = 306; //无效DHCP报文
+    ERROR_FAILED_SEND_MSG = 307;  // 发送消息失败
+    ERROR_MSG_TOO_LONG = 308;   //消息太长
+    ERROR_CONNECTION_CLOSED = 309; // RPC, Socket connection has been closed
+    ERROR_FAILED_GRPC_CALL = 310; // GRPC调用失败
+
+
+    /*SDN业务实现具体错误，500-599*/
+    ERROR_DEVICE_OFFLINE = 500;   //设备已经离线
+    ERROR_DEVICE_NOT_EXIST = 501; //设备不存在
+    ERROR_DEVICE_SHUTDOWN   = 502; //设备已经关机
+    ERROR_CONNECTING_DEVICE = 503;
+
+    ERROR_PORT_NOT_EXIST = 504;   //端口不存在
+    ERROR_TENANT_NOT_EXIST = 505;
+    ERROR_NETWORK_NOT_EXIST = 506; //网络/L2 VNET不存在
+    ERROR_VRF_NOT_EXIST = 507;
+    ERROR_SITE_NOT_EXIST = 508;
+    ERROR_APPPOLICY_OP_NOT_SUPPORT = 509;
+    ERROR_VPN_LOGIN         = 510;
+    ERROR_OP_ABORTED        = 511;
+    ERROR_ASSET_EXCEEDED = 512;
+
+    ERROR_PATH_NOT_FOUND = 550; //路径计算未找到路径
+    ERROR_FAILED_OVSDB_OP = 551;  // OVSDB调用失败
+    ERROR_CONNECT_OVS_FAIL = 552;
+    ERROR_OVS_ADD_PORT = 553;
+    ERROR_OVS_DEL_PORT = 554;
+
+
+    /*安全相关错误码，600-699*/
+    ERROR_INVALID_CERT = 600; //证书无效
+    ERROR_INVALID_PUBLIC_KEY = 601; //公钥无效
+    ERROR_INVALID_PRIVATE_KEY = 602; //私钥无效
+    ERROR_INVALID_USERNAME = 603; //无效用户名
+    ERROR_INVALID_PASSWORD = 604; //无效密码
+    ERROR_INVALID_LICENSE_FILE = 605; //无效License文件
+    ERROR_LICENSE_FUNC_MISSED    =   606; //License中功能授权缺失
+    ERROR_LICENSE_CAPACITY_EXCEEDED    =   607; //License容量超限
+    ERROR_LICENSE_EXPIRED    =   608; //License过期
+    ERROR_AUTH_CHALLENGE = 610; //鉴权挑战
+    ERROR_SESSION_EXPIRED = 611; //会话超时
+
+    /*NFV功能部件、实例相关错误，900-999*/
+    ERROR_START_VPN = 900; //启动VPN进程失败
+    ERROR_STOP_VPN = 901;  //启动VPN进程失败
+    ERROR_START_VFW = 902;
+    ERROR_STOP_VFW = 903;
+    ERROR_START_AV = 904; //启动杀病毒服务失败
+    ERROR_STOP_AV = 905;  //停止杀病毒服务失败
+
+
+  
+    // Errors for business logic
+    ERROR_OUTOF_CHARGE = 1000; //欠费
+  }

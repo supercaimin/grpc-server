@@ -1,0 +1,75 @@
+/* sonic原有命令（非cml模式）功能的配置和操作维护接口
+   对原有的sonic命令，直接将命令ID和用户输入的命令字符串从KLISH透传
+   到CML，再由CML根据命令ID进行分发到原始的sonic进程，匹配到原始的
+   sonic 业务vtysh进行复用处理
+*/
+syntax = "proto3";
+package cml;
+
+
+//命令执行返回码
+//对执行成功的配置命令，默认不输出信息
+//对交互式命令，第一级交互在klish完成，执行成功的也不输出信息
+//执行失败的命令都必须输出信息
+//对ping,show等存在多次输出的,中间存在交互方式(用户可终止执行)
+enum	CMD_RTNCODE {
+	CMD_EXEC_SUCC	=	0;  //执行成功,无字符串输出
+	CMD_EXEC_FAILED	=	1;  //执行失败,必须带返回输出
+	CMD_EXEC_FINISHED = 2; //命令执行结束,用于show,ping等存在多次返回数据的命令,带返回信息
+	CMD_EXEC_NOT_FINISH = 3; //命令执行未结束（还有数据需返回如Ping，show等）,带返回信息
+}
+
+//考虑按业务组件划分命令群,各群存在独立开发,对命令从ID上不在区分配置或show，共用一套结构和流程
+//SONIC 原生配置命令 Profile定义
+//将用户输入的配置命令字符串通过grpc透传到cml
+/*
+message		SONICCfgProfile	{
+		uint32		cmd_id	=	1;
+		string 	    cmdinput_line = 2;
+		string      cmdview_list = 3; //命令执行的模式信息（可能存在多重模式,用"\\\"隔离）
+		uint64		updated_at	=	4;	//配置命令,记录配置时间,同时用做序列号	
+		uint32      klish_vty_no = 5; //用户登录的vty终端号
+}
+*/
+
+//配置命令返回信息一次发完，信息字符串长度不超过1024字节（含'\0'）
+/*
+message    SONICCfgRtnProfile {
+	uint32        cmd_id = 1; //命令ID
+	CMD_RTNCODE   cmd_rtncode = 2; 
+	string        cmdrtn_str = 3; //命令执行后的返回信息字符串;若为空表示执行成功；
+	uint64        updated_at = 4; //命令执行发送过来的序列号
+	uint32        klish_vyt_no = 5; //命令执行的vty终端号
+}
+*/
+
+//SONIC 原生非配置命令如show,ping,trace,debug等 Profile定义
+
+//SONIC命令执行消息（配置和show等共用一套）
+message		SONICCmdInputProfile	{
+		uint32		cmd_id	=	1;
+		string 	    cmdinput_line = 2;
+		string      cmdview_list = 3;
+		uint64      updated_at = 4; //用于命令序列号
+		uint32      klish_vty_no = 5; //用户登录的vty终端号	
+}
+
+
+//SONIC 原生非配置命令如show或诊断等 返回定义。部分show存在多个返回信息（rpc采用流方式）
+message		SONICCmdRtnProfile	{
+		uint32		cmd_id	=	1;
+		CMD_RTNCODE cmd_rtncode = 2; //命令返回码
+		string 	    cmdrtn_str = 3;  //命令返回字符串
+		uint32      cmdrtn_serial = 4; //该次命令的返回序列号,多次返回每次序列号加1
+		uint64      updated_at = 5; //命令时间,用于做命令序列号
+		uint32      klish_vty_no = 6; //用户登录的vty终端号	
+}
+
+
+
+/*SONIC原生命令服务的RPC接口定义*/
+service	SonicCmdService	{
+	//sonic原生命令处理流程,配置和show等共用一套。由klish通过grpc到cml，由cml分发
+	rpc		ExecSonicCfgProfile(SONICCmdInputProfile)	returns	(SONICCmdRtnProfile) {}
+
+}

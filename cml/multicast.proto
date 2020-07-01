@@ -1,0 +1,53 @@
+/* multicast.proto
+组播参数配置，状态查看
+*/
+syntax = "proto3";
+package cml;
+import	"comm_types.proto";
+
+enum MulticastProto {
+    igmp = 0;
+    pim = 1;
+    anycast_rp = 2;
+    mld = 3;
+    igmp_snooping = 4;
+    mld_snooping = 5;
+}
+
+message MCCommonReq {
+    string ifname = 1;
+}
+
+/*组播开关，在每个端口上打开或关闭指定的组播协议*/
+message MulticastSwitch {
+    string ifname = 1;
+    MulticastProto proto = 2;
+    bool enabled = 3;
+}
+
+message MulticastSwitchList {
+    repeated MulticastSwitch mcList = 1;
+}
+
+message MCGroupMember {
+    string ifname = 1;
+    MulticastProto proto = 2;
+    string multicastAddr = 3;
+    repeated string members =4;//以IP地址形式显示的组播成员
+}
+
+message MCGroupMemberReq {
+    MulticastProto proto = 1;
+    string multicastAddr = 2;
+
+}
+
+service	CmlMulticastService	{
+	//打开/关闭指定端口的组播协议
+    rpc  SetMulticastSwitch(MulticastSwitch)	returns	(CommonRespHdr) {}
+    //Show指定端口的组播协议开关，只认入参的接口名称
+    rpc  ShowMulticastSwitch(MCCommonReq)	returns	(MulticastSwitchList) {}
+
+    //Show组播成员
+    rpc  ShowMulticastMember(MCGroupMemberReq)	returns	(MCGroupMember) {}
+}
